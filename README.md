@@ -23,10 +23,10 @@ You can quickly verify your setup with our provided checkpoint.
 <td valign="bottom" align="center">iMF-XL/2</td>
 <!-- TABLE BODY -->
 <tr><td align="left">pre-trained checkpoint</td>
-<td align="center"><a href="https://huggingface.co/Lyy0725/iMF/blob/main/iMF-B-2.zip">download</a></td>
-<td align="center"><a href="https://huggingface.co/Lyy0725/iMF/blob/main/iMF-M-2.zip">download</a></td>
-<td align="center"><a href="https://huggingface.co/Lyy0725/iMF/blob/main/iMF-L-2.zip">download</a></td>
-<td align="center"><a href="https://huggingface.co/Lyy0725/iMF/blob/main/iMF-XL-2.zip">download</a></td>
+<td align="center"><a href="https://huggingface.co/he-vision-group/iMF/blob/main/iMF-B-2.zip">download</a></td>
+<td align="center"><a href="https://huggingface.co/he-vision-group/iMF/blob/main/iMF-M-2.zip">download</a></td>
+<td align="center"><a href="https://huggingface.co/he-vision-group/iMF/blob/main/iMF-L-2.zip">download</a></td>
+<td align="center"><a href="https://huggingface.co/he-vision-group/iMF/blob/main/iMF-XL-2.zip">download</a></td>
 </tr>
 <tr><td align="left">FID</td>
 <td align="center">3.37/3.39</td>
@@ -49,7 +49,7 @@ The FID/IS numbers on the left are from our evaluation, and those on the right a
 
 1. **Download the checkpoint and FID stats:** 
     - Download the pre-trained checkpoint from the table above.
-    - Download the FID stats file from [here](https://huggingface.co/Lyy0725/iMF/blob/main/imagenet_256_fid_stats.npz). Our FID stats is computed on TPU and JAX, which may slightly differ from those computed on GPU and PyTorch.
+    - Download the FID stats file from [here](https://huggingface.co/he-vision-group/iMF/blob/main/imagenet_256_fid_stats.npz). Our FID stats is computed on TPU and JAX, which may slightly differ from those computed on GPU and PyTorch.
 
 2. **Unzip the checkpoint:**
     ```bash
