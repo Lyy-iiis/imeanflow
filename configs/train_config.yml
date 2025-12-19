@@ -1,0 +1,46 @@
+dataset:
+    root: DATA_ROOT
+
+model:
+    model_str: MiT_B_2
+    cfg_beta: 1.0
+
+training:
+    log_per_step: 100
+    checkpoint_per_epoch: 20
+
+    num_epochs: 640
+    batch_size: 1024
+    learning_rate: 0.0001
+    warmup_epochs: 10
+    
+    adam_b2: 0.95
+    ema_type: 'const'
+
+    sample_per_epoch: 20
+    fid_per_epoch: 20
+
+    seed: 42
+
+fid:
+    device_batch_size: 80
+    num_samples: 50000
+    
+    cache_ref: FID_CACHE_REF
+
+sampling:
+    # sample parameters evaluated during training
+    num_steps: 1
+    omega: 7.5
+    t_min: 0.4
+    t_max: 0.65
+
+logging:
+    use_wandb: False # set to True to use wandb
+    wandb_project: 'YOUR PROJECT' # change to your wandb project
+    wandb_entity: 'YOUR ENTITY' # paste your wandb entity here
+    wandb_tags: # use your own tags
+        - YOUR TAGS
+    wandb_notes: 'YOUR NOTES' # your wandb notes
+
+load_from: ''

@@ -1,0 +1,32 @@
+model:
+    model_str: MiT_B_2 # specify model config
+
+fid:
+    device_batch_size: 80
+    num_samples: 50000
+    
+    cache_ref: FID_CACHE_REF
+
+sampling:
+    # CFG scale and interval recommended for provided iMF-B/2 checkpoint
+    # You can add more omega and intervals to do a grid search
+    num_steps: 1
+    interval:
+        - [0.4, 0.65]
+    omegas: [8.0]
+
+    # For provided iMF-M,L,XL/2 checkpoints, use the following settings:
+    # interval: [0.4, 0.6], omegas: [10.5] for iMF-M,L/2
+    # interval: [0.42, 0.62], omegas: [8.0] for iMF-XL/2
+    # interval: [0.36, 0.64], omegas: [4.0] for iMF-XL-2, 2-NFE
+
+logging:
+    use_wandb: False # set to True to use wandb
+    wandb_project: 'YOUR PROJECT' # change to your wandb project
+    wandb_entity: 'YOUR ENTITY' # paste your wandb entity here
+    wandb_tags: # use your own tags
+        - 'YOUR TAGS'
+    wandb_notes: 'YOUR NOTES' # your wandb notes
+
+load_from: '' # path to load checkpoint
+eval_only: True # set to True for evaluation only
