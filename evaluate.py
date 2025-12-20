@@ -30,6 +30,7 @@ def run_evaluate(
     fid_ref,
     num_samples: int = 50000,
     device_batch_size: int = 64,
+    initial_seed: int = 0,
     keep_samples: bool = False,
     **inference_kwargs,
 ):
@@ -72,13 +73,12 @@ def run_evaluate(
         labels_gen = torch.from_numpy(labels_gen).long().cuda()
         sample_idx = world_size * device_bs * i + local_rank * device_bs + torch.arange(device_bs)
 
-        with torch.amp.autocast('cuda', dtype=torch.bfloat16):
-            sampled_latents = model.generate(
-                n_sample=sample_idx.shape[0],
-                rng=tu.BatchGenerator(device=dist.local_device(), seeds=sample_idx),
-                labels=labels_gen,
-                **inference_kwargs,
-            )
+        sampled_latents = model.generate(
+            n_sample=sample_idx.shape[0],
+            rng=tu.BatchGenerator(device=dist.local_device(), seeds=sample_idx ^ initial_seed),
+            labels=labels_gen,
+            **inference_kwargs,
+        )
         sampled_images = vae_wrapper.decode(sampled_latents)
         sampled_images = tu.device_get(sampled_images) # np array
         sampled_images = sampled_images.transpose(0, 2, 3, 1)  # b h w c
@@ -141,8 +141,8 @@ def get_args_parser():
                         choices=['MiT_B_2', 'MiT_M_2', 'MiT_L_2', 'MiT_XL_2'])
     
     # sampling
-    parser.add_argument('--sample-seed', default=0, type=int,
-                        help='Initial random seed for sampling (seeds will be sample_seed ~ sample_seed + num_samples)')
+    parser.add_argument('--sample-seed', default=42, type=int,
+                        help='Random seed for sampling')
     parser.add_argument('--num-sampling-steps', default=1, type=int,
                         help='Sampling steps')
     parser.add_argument('--cfg-omega', default=8.0, type=float,
@@ -203,6 +203,7 @@ def main(args):
             fid_ref=args.fid_ref,
             num_samples=args.num_images,
             device_batch_size=args.gen_bsz,
+            initial_seed=args.sample_seed,
             keep_samples=args.save_samples,
             num_steps=args.num_sampling_steps,
             omega=args.cfg_omega,
