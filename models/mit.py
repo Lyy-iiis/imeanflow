@@ -1,9 +1,9 @@
 import math
 from functools import partial
 
-import jax
-import jax.numpy as jnp
-from flax import linen as nn
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 from models.embedder import PatchEmbedder, TimestepEmbedder, LabelEmbedder
 from models.torch_models import TorchLinear, RMSNorm, SwiGLUMlp
@@ -11,7 +11,7 @@ from models.torch_models import TorchLinear, RMSNorm, SwiGLUMlp
 
 def unsqueeze(t, dim):
     """Adds a new axis to a tensor at the given position."""
-    return jnp.expand_dims(t, axis=dim)
+    return t.unsqueeze(dim)
 
 
 #################################################################################
@@ -22,13 +22,13 @@ def unsqueeze(t, dim):
 class RoPEAttention(nn.Module):
     """Multi-head self-attention with RoPE and QK RMS norm."""
 
-    hidden_size: int
-    num_heads: int
+    def __init__(self, hidden_size, num_heads, weight_init="kaiming", weight_init_constant=1.0):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.num_heads = num_heads
+        self.weight_init = weight_init
+        self.weight_init_constant = weight_init_constant
 
-    weight_init: str = "kaiming"
-    weight_init_constant: float = 1.0
-
-    def setup(self):
         init_kwargs = dict(
             in_features=self.hidden_size,
             out_features=self.hidden_size,
@@ -47,7 +47,7 @@ class RoPEAttention(nn.Module):
         self.q_norm = RMSNorm(self.head_dim)
         self.k_norm = RMSNorm(self.head_dim)
 
-    def __call__(self, x, rope_freqs):
+    def forward(self, x, rope_freqs):
         batch, seq_len, _ = x.shape
         q = self.q_proj(x).reshape(batch, seq_len, self.num_heads, self.head_dim)
         k = self.k_proj(x).reshape(batch, seq_len, self.num_heads, self.head_dim)
@@ -58,8 +58,13 @@ class RoPEAttention(nn.Module):
 
         q = apply_rotary_pos_emb(q, rope_freqs)
         k = apply_rotary_pos_emb(k, rope_freqs)
-
-        attn = nn.dot_product_attention(q, k, v, dtype=jnp.float32)
+        
+        # manually implement attention to match JAX implementation
+        query = q / math.sqrt(self.head_dim)
+        attn_weights = torch.einsum('bqhd,bkhd->bhqk', query, k)
+        attn_weights = F.softmax(attn_weights, dim=-1, dtype=torch.float32)
+        attn = torch.einsum('bhqk,bkhd->bqhd', attn_weights, v)
+        
         attn = attn.reshape(batch, seq_len, self.hidden_size)
 
         return self.out_proj(attn)
@@ -68,14 +73,14 @@ class RoPEAttention(nn.Module):
 class TransformerBlock(nn.Module):
     """Transformer block with zero-initialized vector gates on residuals."""
 
-    hidden_size: int
-    num_heads: int
-    mlp_ratio: float = 4.0
-
-    weight_init: str = "kaiming"
-    weight_init_constant: float = 1.0
-
-    def setup(self):
+    def __init__(self, hidden_size, num_heads, mlp_ratio=4.0, weight_init="kaiming", weight_init_constant=1.0):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.num_heads = num_heads
+        self.mlp_ratio = mlp_ratio
+        self.weight_init = weight_init
+        self.weight_init_constant = weight_init_constant
+        
         self.norm1 = RMSNorm(self.hidden_size)
         self.attn = RoPEAttention(
             self.hidden_size,
@@ -92,14 +97,10 @@ class TransformerBlock(nn.Module):
             weight_init_constant=self.weight_init_constant,
         )
 
-        self.attn_gate = self.param(
-            "attn_gate", nn.initializers.zeros, (self.hidden_size,)
-        )
-        self.mlp_gate = self.param(
-            "mlp_gate", nn.initializers.zeros, (self.hidden_size,)
-        )
+        self.attn_gate = nn.Parameter(torch.zeros(self.hidden_size))
+        self.mlp_gate = nn.Parameter(torch.zeros(self.hidden_size))
 
-    def __call__(self, x, rope_freqs):
+    def forward(self, x, rope_freqs):
         x = x + self.attn(self.norm1(x), rope_freqs) * self.attn_gate
         x = x + self.mlp(self.norm2(x)) * self.mlp_gate
         return x
@@ -108,11 +109,13 @@ class TransformerBlock(nn.Module):
 class FinalLayer(nn.Module):
     """Final projection layer with RMSNorm and zero init weights."""
 
-    hidden_size: int
-    patch_size: int
-    out_channels: int
 
-    def setup(self):
+    def __init__(self, hidden_size, patch_size, out_channels):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.patch_size = patch_size
+        self.out_channels = out_channels
+
         self.norm = RMSNorm(self.hidden_size)
         self.linear = TorchLinear(
             self.hidden_size,
@@ -138,29 +141,26 @@ class MiT(nn.Module):
     Two heads of equal depth (aux_head_depth) branch off afterwards.
     """
 
-    input_size: int = 32
-    patch_size: int = 2
-    in_channels: int = 4
-    hidden_size: int = 1152
-    depth: int = 28
-    num_heads: int = 16
-    mlp_ratio: float = 8 / 3
-    num_classes: int = 1000
-
-    aux_head_depth: int = 8
-
-    num_class_tokens: int = 8
-    num_time_tokens: int = 4
-    num_cfg_tokens: int = 4
-    num_interval_tokens: int = 2
-
-    token_init_constant: float = 1.0
-    embedding_init_constant: float = 1.0
-    weight_init_constant: float = 0.32
-
-    eval: bool = False
-
-    def setup(self):
+    def __init__(
+        self,
+        input_size: int = 32,
+        patch_size: int = 2,
+        in_channels: int = 4,
+        hidden_size: int = 1152,
+        depth: int = 28,
+        num_heads: int = 16,
+        mlp_ratio: float = 8 / 3,
+        num_classes: int = 1000,
+        aux_head_depth: int = 8,
+        num_class_tokens: int = 8,
+        num_time_tokens: int = 4,
+        num_cfg_tokens: int = 4,
+        num_interval_tokens: int = 2,
+        token_init_constant: float = 1.0,
+        embedding_init_constant: float = 1.0,
+        weight_init_constant: float = 0.32,
+        eval_mode: bool = False,
+    ):
         """
         Set up the MiT model components.
          - Patch embedder for input images.
@@ -169,6 +169,28 @@ class MiT(nn.Module):
          - Transformer blocks with shared backbone and dual heads.
          - Final projection layers for u and v outputs.
         """
+        super().__init__()
+        self.input_size = input_size
+        self.patch_size = patch_size
+        self.in_channels = in_channels
+        self.hidden_size = hidden_size
+        self.depth = depth
+        self.num_heads = num_heads
+        self.mlp_ratio = mlp_ratio
+        self.num_classes = num_classes
+        
+        self.aux_head_depth = aux_head_depth
+        
+        self.num_class_tokens = num_class_tokens
+        self.num_time_tokens = num_time_tokens
+        self.num_cfg_tokens = num_cfg_tokens
+        self.num_interval_tokens = num_interval_tokens
+        
+        self.token_init_constant = token_init_constant
+        self.embedding_init_constant = embedding_init_constant
+        self.weight_init_constant = weight_init_constant
+        
+        self.eval_mode = eval_mode
 
         self.out_channels = self.in_channels
 
@@ -192,35 +214,26 @@ class MiT(nn.Module):
         self.cfg_t_end_embedder = TimestepEmbedder(**embed_kwargs)
         self.y_embedder = LabelEmbedder(self.num_classes, **embed_kwargs)
 
-        token_initializer = nn.initializers.normal(
-            stddev=self.token_init_constant / math.sqrt(self.hidden_size)
+        token_initializer = partial(
+            nn.init.normal_,
+            std=self.token_init_constant / math.sqrt(self.hidden_size)
         )
-
-        self.time_tokens = self.param(
-            "time_tokens",
-            token_initializer,
-            (self.num_time_tokens, self.hidden_size),
+        self.time_tokens = nn.Parameter(
+            token_initializer(torch.empty(self.num_time_tokens, self.hidden_size))
         )
-        self.class_tokens = self.param(
-            "class_tokens",
-            token_initializer,
-            (self.num_class_tokens, self.hidden_size),
+        self.class_tokens = nn.Parameter(
+            token_initializer(torch.empty(self.num_class_tokens, self.hidden_size))
         )
-        self.omega_tokens = self.param(
-            "omega_tokens",
-            token_initializer,
-            (self.num_cfg_tokens, self.hidden_size),
+        self.omega_tokens = nn.Parameter(
+            token_initializer(torch.empty(self.num_cfg_tokens, self.hidden_size))
         )
-        self.t_min_tokens = self.param(
-            "t_min_tokens",
-            token_initializer,
-            (self.num_interval_tokens, self.hidden_size),
+        self.t_min_tokens = nn.Parameter(
+            token_initializer(torch.empty(self.num_interval_tokens, self.hidden_size))
         )
-        self.t_max_tokens = self.param(
-            "t_max_tokens",
-            token_initializer,
-            (self.num_interval_tokens, self.hidden_size),
+        self.t_max_tokens = nn.Parameter(
+            token_initializer(torch.empty(self.num_interval_tokens, self.hidden_size))
         )
+        
 
         total_tokens = (
             self.x_embedder.num_patches
@@ -249,16 +262,16 @@ class MiT(nn.Module):
             weight_init_constant=self.weight_init_constant,
         )
 
-        self.shared_blocks = [
+        self.shared_blocks = nn.ModuleList([
             TransformerBlock(**block_kwargs) for _ in range(shared_depth)
-        ]
-        self.u_heads = [TransformerBlock(**block_kwargs) for _ in range(head_depth)]
+        ])
+        self.u_heads = nn.ModuleList([TransformerBlock(**block_kwargs) for _ in range(head_depth)])
 
         # We don't need the v heads during evaluation
-        self.v_heads = [
+        self.v_heads = nn.ModuleList([
             TransformerBlock(**block_kwargs)
-            for _ in range(head_depth if not self.eval else 0)
-        ]
+            for _ in range(head_depth if not self.eval_mode else 0)
+        ])
 
         self.u_final_layer = FinalLayer(
             self.hidden_size, self.patch_size, self.out_channels
@@ -274,8 +287,8 @@ class MiT(nn.Module):
         assert h * w == x.shape[1]
 
         x = x.reshape((x.shape[0], h, w, p, p, c))
-        x = jnp.einsum("nhwpqc->nhpwqc", x)
-        images = x.reshape((x.shape[0], h * p, w * p, c))
+        x = torch.einsum("nhwpqc->nchpwq", x)
+        images = x.reshape((x.shape[0], c, h * p, w * p))
         return images
 
     def _build_sequence(self, x, h, w, t_min, t_max, y):
@@ -309,7 +322,7 @@ class MiT(nn.Module):
         t_max_tokens = self.t_max_tokens + unsqueeze(t_max_embed, 1)
         class_tokens = self.class_tokens + unsqueeze(y_embed, 1)
 
-        seq = jnp.concatenate(
+        seq = torch.cat(
             [
                 class_tokens,
                 omega_tokens,
@@ -323,7 +336,7 @@ class MiT(nn.Module):
 
         return seq
 
-    def __call__(self, x, t, h, w, t_min, t_max, y):
+    def forward(self, x, t, h, w, t_min, t_max, y):
         """
         Forward pass of the MiT model.
         Returns the predicted u and v components.
@@ -369,20 +382,20 @@ class MiT(nn.Module):
 
 
 def precompute_rope_freqs(dim: int, seq_len: int, theta: float = 10000.0):
-    freqs = 1.0 / (theta ** (jnp.arange(0, dim, 2, dtype=jnp.float32) / dim))
-    positions = jnp.arange(seq_len, dtype=jnp.float32)
-    freqs_cis = jnp.outer(positions, freqs)
-    real = jnp.cos(freqs_cis)
-    imag = jnp.sin(freqs_cis)
-    return jax.lax.complex(real, imag)
+    freqs = 1.0 / (theta ** (torch.arange(0, dim, 2, dtype=torch.float32) / dim))
+    positions = torch.arange(seq_len, dtype=torch.float32)
+    freqs_cis = torch.outer(positions, freqs)
+    real = torch.cos(freqs_cis)
+    imag = torch.sin(freqs_cis)
+    return torch.complex(real, imag)
 
 
 def apply_rotary_pos_emb(x, freqs_cis):
-    x_complex = x.astype(jnp.float32).view(jnp.complex64)
+    x_complex = x.to(torch.float32).view(torch.complex64)
     x_complex = x_complex.reshape(x.shape[:-1] + (-1,))
     freqs_cis = unsqueeze(unsqueeze(freqs_cis, 0), 2)
-    x_rotated = x_complex * freqs_cis
-    x_out = x_rotated.astype(x_complex.dtype).view(x.dtype)
+    x_rotated = x_complex * freqs_cis.to(x.device)
+    x_out = x_rotated.to(x_complex.dtype).view(x.dtype)
     return x_out.reshape(x.shape)
 
 
