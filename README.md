@@ -4,7 +4,7 @@
   <img src="assets/teaser.png" width="60%">
 </p>
 
-This is the official PyTorch re-implementation for the paper [Improved Mean Flows: On the Challenges of Fastforward Generative Models](https://arxiv.org/abs/2512.02012). This code is written and tested on H100 GPUs.
+This is the official PyTorch re-implementation for the paper [Improved Mean Flows: On the Challenges of Fastforward Generative Models](https://arxiv.org/abs/2512.02012), which is originally implemented with JAX+TPUs. This code is written and tested on H100 GPUs.
 
 ## Initialization
 
