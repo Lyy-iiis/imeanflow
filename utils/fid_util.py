@@ -141,8 +141,12 @@ def compute_stats(
     np_feats = jnp.concatenate(l_feats)
     np_feats = np_feats[:num_samples]
 
+    np_feats = np_feats.reshape((-1, LDC, np_feats.shape[-1]))
+    np_feats = np_feats.transpose((1, 0, 2))  # (LDC, N//LDC, feat_dim)
     all_feats = multihost_utils.process_allgather(np_feats)
-    all_feats = all_feats.reshape(-1, np_feats.shape[-1])
+    all_feats = all_feats.reshape((-1, ) + all_feats.shape[2:])
+    all_feats = all_feats.transpose((1, 0, 2))  # (N//LDC, num_hosts*LDC, feat_dim)
+    all_feats = all_feats.reshape(-1, all_feats.shape[-1])
     all_feats = jax.device_get(all_feats)
 
     log_for_0(
@@ -159,8 +163,12 @@ def compute_stats(
     np_logits = jnp.concatenate(l_logits)
     np_logits = np_logits[:num_samples]
 
+    np_logits = np_logits.reshape((-1, LDC, np_logits.shape[-1]))
+    np_logits = np_logits.transpose((1, 0, 2))  # (LDC, N//LDC, num_classes)
     all_logits = multihost_utils.process_allgather(np_logits)
-    all_logits = all_logits.reshape(-1, np_logits.shape[-1])
+    all_logits = all_logits.reshape((-1, ) + all_logits.shape[2:])
+    all_logits = all_logits.transpose((1, 0, 2))  # (N//LDC, num_hosts*LDC, num_classes)
+    all_logits = all_logits.reshape(-1, all_logits.shape[-1])
     all_logits = jax.device_get(all_logits)
     all_logits = all_logits[:fid_samples]
 

@@ -6,6 +6,10 @@
 
 This is the official JAX implementation for the paper [Improved Mean Flows: On the Challenges of Fastforward Generative Models](https://arxiv.org/abs/2512.02012). This code is written and tested on TPUs. For PyTorch implementation, please refer to [this branch](https://github.com/Lyy-iiis/imeanflow/tree/torch).
 
+## Update
+
+- **2026.02.06** Release the [JAX code](https://github.com/Lyy-iiis/pMF) for [pixel MeanFlow](https://arxiv.org/abs/2601.22158) (pMF)!
+
 ## Initialization
 
 Run `install.sh` to install the dependencies (JAX+TPUs). Log in to WandB to track your experiments if needed.
