@@ -8,6 +8,7 @@ This is the official JAX implementation for the paper [Improved Mean Flows: On t
 
 ## Update
 
+- **2026.02.13** Release the [PyTorch code](https://github.com/Lyy-iiis/pMF/tree/torch) for [pixel MeanFlow](https://arxiv.org/abs/2601.22158) (pMF)!
 - **2026.02.06** Release the [JAX code](https://github.com/Lyy-iiis/pMF) for [pixel MeanFlow](https://arxiv.org/abs/2601.22158) (pMF)!
 
 ## Initialization
