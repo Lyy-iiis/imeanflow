@@ -2,7 +2,7 @@ dataset:
     root: DATA_ROOT
 
 model:
-    model_str: MiT_B_2
+    model_str: imfDiT_B_2
     cfg_beta: 1.0
 
 training:

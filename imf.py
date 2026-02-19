@@ -2,7 +2,7 @@ import flax.linen as nn
 import jax
 import jax.numpy as jnp
 
-from models import mit
+from models import imfDiT
 
 
 def generate(variable, model, rng, n_sample, config, 
@@ -78,8 +78,8 @@ class iMeanFlow(nn.Module):
         """
         Setup improved MeanFlow model.
         """
-        net_fn = getattr(mit, self.model_str)
-        self.net: mit.MiT = net_fn(
+        net_fn = getattr(imfDiT, self.model_str)
+        self.net: imfDiT.imfDiT = net_fn(
             name="net", num_classes=self.num_classes, eval=self.eval
         )
 

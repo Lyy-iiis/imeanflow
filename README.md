@@ -196,7 +196,7 @@ training:
     num_epochs: 80                  # Train for fewer epochs
 
 method:
-    model_str: MiT_B_2               # Use iMF-B/2 model
+    model_str: imfDiT_B_2               # Use iMF-B/2 model
     cfg_beta: 1.0                     # Set cfg distribution
 ```
 

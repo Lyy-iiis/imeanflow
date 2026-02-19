@@ -1,5 +1,5 @@
 model:
-    model_str: MiT_B_2 # specify model config
+    model_str: imfDiT_B_2 # specify model config
 
 fid:
     device_batch_size: 80
