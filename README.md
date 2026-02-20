@@ -60,7 +60,7 @@ To generate a batch of images using the iMF-XL/2 model (for visualization only),
 python evaluate.py sample \
 --ckpt-path /path/to/XL/2/checkpoint.pth \
 --workdir ./visualize \
---model MiT_XL_2 \
+--model imfDiT_XL_2 \
 ```
 
 To evaluate the FID of the iMF-B/2 model, run:
@@ -78,7 +78,7 @@ To evaluate the FID of the iMF-M/2 model, run:
 torchrun --nproc-per-node=8 evaluate.py evaluate \
 --ckpt-path /path/to/M/2/checkpoint.pth \
 --workdir ./m2_fid_output \
---model MiT_M_2 \
+--model imfDiT_M_2 \
 --cfg-omega 10.5 \
 --interval-min 0.4 \
 --interval-max 0.6 \
@@ -91,7 +91,7 @@ To evaluate the FID of the iMF-L/2 model, run:
 torchrun --nproc-per-node=8 evaluate.py evaluate \
 --ckpt-path /path/to/L/2/checkpoint.pth \
 --workdir ./l2_fid_output \
---model MiT_L_2 \
+--model imfDiT_L_2 \
 --cfg-omega 10.5 \
 --interval-min 0.4 \
 --interval-max 0.6 \
@@ -104,7 +104,7 @@ To evaluate the FID of the iMF-XL/2 model, run:
 torchrun --nproc-per-node=8 evaluate.py evaluate \
 --ckpt-path /path/to/XL/2/checkpoint.pth \
 --workdir ./xl2_fid_output \
---model MiT_XL_2 \
+--model imfDiT_XL_2 \
 --cfg-omega 8.0 \
 --interval-min 0.42 \
 --interval-max 0.62 \
@@ -117,7 +117,7 @@ To evaluate the FID of the iMF-XL/2 model with 2 NFE, run:
 torchrun --nproc-per-node=8 evaluate.py evaluate \
 --ckpt-path /path/to/XL/2/checkpoint.pth \
 --workdir ./xl2_2nfe_fid_output \
---model MiT_XL_2 \
+--model imfDiT_XL_2 \
 --num-sampling-steps 2 \
 --cfg-omega 4.0 \
 --interval-min 0.36 \

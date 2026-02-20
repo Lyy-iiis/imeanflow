@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models import mit
+from models import imfDiT
 
 class iMeanFlow(nn.Module):
     """improved MeanFlow"""
@@ -29,8 +29,8 @@ class iMeanFlow(nn.Module):
         assert eval, f'The current codebase only supports inference mode'
         
         
-        net_fn = getattr(mit, self.model_str)
-        self.net: mit.MiT = net_fn(
+        net_fn = getattr(imfDiT, self.model_str)
+        self.net: imfDiT.imfDiT = net_fn(
             input_size=self.img_size, 
             in_channels=self.img_channels,
             num_classes=self.num_classes, 

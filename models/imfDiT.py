@@ -146,9 +146,9 @@ class FinalLayer(nn.Module):
 #################################################################################
 
 
-class MiT(nn.Module):
+class imfDiT(nn.Module):
     """
-    MeanFlow improved Transformer (MiT).
+    MeanFlow improved Transformer (imfDiT).
     A shared backbone processes the first (depth - aux_head_depth) layers.
     Two heads of equal depth (aux_head_depth) branch off afterwards.
     """
@@ -174,7 +174,7 @@ class MiT(nn.Module):
         eval_mode: bool = False,
     ):
         """
-        Set up the MiT model components.
+        Set up the imfDiT model components.
          - Patch embedder for input images.
          - Embedders for time, omega, cfg intervals, and class labels.
          - Learnable tokens for conditioning.
@@ -352,7 +352,7 @@ class MiT(nn.Module):
 
     def forward(self, x, t, h, w, t_min, t_max, y):
         """
-        Forward pass of the MiT model.
+        Forward pass of the imfDiT model.
         Returns the predicted u and v components.
 
         Args:
@@ -418,8 +418,8 @@ def apply_rotary_pos_emb(x, freqs_cis):
 #################################################################################
 
 
-MiT_B_2 = partial(
-    MiT,
+imfDiT_B_2 = partial(
+    imfDiT,
     depth=12,
     hidden_size=768,
     patch_size=2,
@@ -427,8 +427,8 @@ MiT_B_2 = partial(
     aux_head_depth=8,
 )
 
-MiT_M_2 = partial(
-    MiT,
+imfDiT_M_2 = partial(
+    imfDiT,
     depth=24,
     hidden_size=768,
     patch_size=2,
@@ -436,8 +436,8 @@ MiT_M_2 = partial(
     aux_head_depth=8,
 )
 
-MiT_L_2 = partial(
-    MiT,
+imfDiT_L_2 = partial(
+    imfDiT,
     depth=32,
     hidden_size=1024,
     patch_size=2,
@@ -445,8 +445,8 @@ MiT_L_2 = partial(
     aux_head_depth=8,
 )
 
-MiT_XL_2 = partial(
-    MiT,
+imfDiT_XL_2 = partial(
+    imfDiT,
     depth=48,
     hidden_size=1024,
     patch_size=2,

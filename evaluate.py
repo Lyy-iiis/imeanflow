@@ -136,9 +136,9 @@ def get_args_parser():
                         help='Path to checkpoint to resume training', required=True)
 
     # architecture
-    parser.add_argument('--model', default='MiT_B_2', type=str, metavar='MODEL',
+    parser.add_argument('--model', default='imfDiT_B_2', type=str, metavar='MODEL',
                         help='Name of the model to train',
-                        choices=['MiT_B_2', 'MiT_M_2', 'MiT_L_2', 'MiT_XL_2'])
+                        choices=['imfDiT_B_2', 'imfDiT_M_2', 'imfDiT_L_2', 'imfDiT_XL_2'])
     
     # sampling
     parser.add_argument('--sample-seed', default=42, type=int,
