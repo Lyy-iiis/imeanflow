@@ -6,6 +6,11 @@
 
 This is the official PyTorch re-implementation for the paper [Improved Mean Flows: On the Challenges of Fastforward Generative Models](https://arxiv.org/abs/2512.02012), which is originally implemented with JAX+TPUs. This code is written and tested on H100 GPUs. We only provide inference code and pre-trained checkpoints in this repo. For training code, please refer to the original [JAX implementation](https://github.com/Lyy-iiis/imeanflow/).
 
+## Update
+
+- **2026.02.13** Release the [PyTorch code](https://github.com/Lyy-iiis/pMF/tree/torch) for [pixel MeanFlow](https://arxiv.org/abs/2601.22158) (pMF)!
+- **2026.02.06** Release the [JAX code](https://github.com/Lyy-iiis/pMF) for [pixel MeanFlow](https://arxiv.org/abs/2601.22158) (pMF)!
+
 ## Initialization
 
 Use `requirements.txt` to install the dependencies (PyTorch+GPUs).
