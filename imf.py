@@ -280,11 +280,12 @@ class iMeanFlow(nn.Module):
             jax.random.uniform(self.make_rng("gen"), shape=(bz,))
             < self.class_dropout_prob
         )
-        num_drop = jnp.sum(rand_mask).astype(jnp.int32)
-        drop_mask = jnp.arange(bz)[:, None, None, None] < num_drop
+        # I think the sequence before mismatch with the note above (line 265)
+        # Note: Expand (B,) -> (B,1,1,1) so it can broadcast over (B,H,W,C) tensors.
+        drop_mask = rand_mask[:, None, None, None]
 
         labels = jnp.where(
-            drop_mask.reshape(bz),
+            rand_mask,
             self.num_classes,
             labels,
         )
@@ -310,10 +311,13 @@ class iMeanFlow(nn.Module):
             v_c: Conditioned instantaneous velocity at time t, for jvp computation.
         """
 
-        # compute CFG target
+        # Compute CFG target.
         v_c, v_u = self.v_fn(z_t, t, w, y=y)
         v_g_fm = v_t + (1 - 1 / w) * (v_c - v_u)
 
+        # Disable CFG outside [t_min, t_max] by setting w=1.0.
+        # Note: in that case (1 - 1/w) becomes 0, so the (v_c - v_u) term is
+        # multiplied by 0 and reusing v_u computed above is harmless.
         w = jnp.where((t >= t_min) & (t <= t_max), w, 1.0)
 
         v_c = self.v_cond_fn(z_t, t, w, y=y)
